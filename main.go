@@ -13,6 +13,8 @@ func main() {
 
 	addRoutes()
 
+	github.CreateConnection()
+
 	fmt.Println("Server listening on port " + port[1:])
 	http.ListenAndServe(port, nil)
 }
