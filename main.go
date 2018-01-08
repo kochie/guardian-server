@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"database/sql"
+	_ "github.com/lib/pq"
 
-	"github.com/kochie/guardian-server/handlers/github"
-	"github.com/kochie/guardian-server/handlers/user"
+	"./handlers/github"
+	"./handlers/user"
 )
 
 func main() {
