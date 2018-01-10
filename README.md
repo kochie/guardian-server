@@ -1,6 +1,6 @@
 <img src='https://d.pr/SLO9Sg/3123P4IP+' />
 
-# guardian-server [![Build Status](https://travis-ci.org/kochie/guardian-server.svg?branch=master)](https://travis-ci.org/kochie/guardian-server)
+# guardian-server [![Build Status](https://travis-ci.org/kochie/guardian-server.svg?branch=master)](https://travis-ci.org/kochie/guardian-server) [![Coverage Status](https://coveralls.io/repos/github/kochie/guardian-server/badge.svg?branch=master)](https://coveralls.io/github/kochie/guardian-server?branch=master)
 Server for communicating with guardian hosts.
 
 # Building and Installation
@@ -26,4 +26,14 @@ go build main.go
 - [Optionally] Install the binary.
 ```bash
 go install main.go
+```
+
+## Docker
+To build in docker compose.
+```bash
+docker-compose build 
+```
+To run in docker compose.
+```bash
+docker-compose up
 ```
