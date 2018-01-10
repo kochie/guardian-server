@@ -1,16 +1,19 @@
 language: go
-
 go:
-  - 1.9
-
+- 1.9
 env:
+  matrix:
   - DEP_VERSION="0.3.2"
-
+  global:
+    secure: 00viW0J13FMTH20WofuvnavlpEKJp2NqsI7Q2+W45Jfymlrz2w9g6QLee4Z56BbY5dNzqHZV0K7+bfVZqsRtLnW6p9P2HlJ8yLLttC0oKz+AZ/B1mLznOEbKXa56TX6va5vQySdkCNDbZHZtBZ1bFeLkR192YW0gWLrXvkMC1tzjBhpem42gi+gpWy/APFNqDAogKitU4XzuLGgB3+9A93z+L3OPD2DeRlKMarJM5dC/iAXeC4tI53yktvyyJu+5BDEvUZkU4X36ZyvJL19SNbx5lCuXNkLtEm2mkqrUfkz2g3pDHhgwZqU3kR5slpZDAxqMo3e/G7zuEozQjxpIBJ5B8/2dqHrjkLFD732nynGMU4Nn+VN7P29X0IAbn8maxL/QYbqhgDIexzQsea85EGodFJNcgFZFzgDWs3SsR0vG5w6hOzYKVRt4QEDL1XphnWnJ8negUiUX/ISq5JNJGwLZa+w160VPmuOWsvYdeKk9yc1RdwBuiMaq3Dw2cOThd5ySzvPuhPc+Tq9j7GnFUuRaoZ5q1/63dXyrbYenOUpj3FflOdHDu6njMFbi+WhSY9U3vrzJzUQutsN2YxW4PDu9kNECWsZ4X2mYOkTuLHNQ6/oAgL7oxWntforgv7EIviq80harzZTJkLxKl9l0ei7kPrd3wgVGKPOaGmsK3L4=
 before_install:
-  # Download the binary to bin folder in $GOPATH
-  - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
-  # Make the binary executable
-  - chmod +x $GOPATH/bin/dep
-
+- curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64
+  -o $GOPATH/bin/dep
+- chmod +x $GOPATH/bin/dep
+- go get github.com/mattn/goveralls
+- go get golang.org/x/tools/cmd/cover
 install:
-  - dep ensure
+- dep ensure
+script:
+- go vet
+- goveralls -repotoken ${COVERALLS_TOKEN}
