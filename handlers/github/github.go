@@ -5,7 +5,7 @@ import (
     "net/http"
     "github.com/google/go-github/github"
     "golang.org/x/oauth2"
-    "golang.org/x/oauth2/github"
+//    "golang.org/x/oauth2/github"
     "context"
     "log"
 )
@@ -25,7 +25,7 @@ func Addkey(w http.ResponseWriter, r *http.Request) {
 func CreateConnection() {
     ctx := context.Background()
     ts := oauth2.StaticTokenSource(
-        &oauth2.Token{AccessToken: "df27ff7cd8139262ca592bfafbc18fc0846fb320"},
+        &oauth2.Token{AccessToken: ""},
     )
     tc := oauth2.NewClient(ctx, ts)
 
