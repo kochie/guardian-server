@@ -17,4 +17,4 @@ install:
 - dep ensure
 script:
 - go vet
-- goveralls -repotoken ${repo_token}
+- goveralls -repotoken $COVERALLS_TOKEN
