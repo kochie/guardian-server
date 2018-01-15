@@ -5,20 +5,25 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/kochie/guardian-server/lib"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	//	"./handlers/github"
 	//	"./handlers/user"
 )
 
-func main() {
-	port := ":8080"
+//User datatype
+type User struct {
+	Email string
+}
 
+func main() {
+	config := lib.ImportConfig()
 	addRoutes()
 
-	//	github.CreateConnection()
-	setup()
-	fmt.Println("Server listening on port " + port[1:])
-	http.ListenAndServe(port, nil)
+	setup(config.MongoHostname)
+	fmt.Println("Server listening on port " + config.Port)
+	http.ListenAndServe(":"+config.Port, nil)
 }
 
 func addRoutes() {
@@ -30,16 +35,29 @@ func addRoutes() {
 	//	http.HandleFunc("/api/github/addkey/", github.Addkey)
 }
 
-func setup() {
-	session := newDatabaseConnection()
+func setup(hostname string) {
+	session := newDatabaseConnection(hostname)
+	session.SetMode(mgo.Monotonic, true)
+	defer session.Close()
+
+	users := session.DB("guardian").C("users")
+	err := users.Insert(&User{"robert@kochie.io"})
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(rows)
+
+	result := User{}
+	err = users.Find(bson.M{"email": "robert@kochie.io"}).One(&result)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("email:", result.Email)
 }
 
-func newDatabaseConnection() (session *mgo.Session) {
-	session, err := mgo.Dial("localhost")
+func newDatabaseConnection(hostname string) (session *mgo.Session) {
+	session, err := mgo.Dial(hostname)
 	if err != nil {
 		log.Fatal(err)
 	}

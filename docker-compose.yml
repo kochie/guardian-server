@@ -5,10 +5,13 @@ services:
     ports: 
       - "8080:8080"
     depends_on:
-      - "db"
+      - "mongo"
       - "redis"
   redis:
     image: "redis:alpine"
-  db:
-    image: "postgres:alpine"
+  mongo:
+    ports:
+    - "27017:27017"
+    image: "mongo:latest"
+    
 
