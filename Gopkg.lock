@@ -20,13 +20,28 @@
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/lib/pq"
+  name = "github.com/graphql-go/graphql"
   packages = [
     ".",
-    "oid"
+    "gqlerrors",
+    "language/ast",
+    "language/kinds",
+    "language/lexer",
+    "language/location",
+    "language/parser",
+    "language/printer",
+    "language/source",
+    "language/typeInfo",
+    "language/visitor"
   ]
-  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
+  revision = "5e7dd4fc3e87341229fa03d8f79d2ab5455963fb"
+  version = "v0.7.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/graphql-go/handler"
+  packages = ["."]
+  revision = "cc93f95bb535278ff64b1c5ead653bdf9ca17d57"
 
 [[projects]]
   branch = "master"
@@ -75,6 +90,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "50444f6f2de33e416d7c6788b30ea7bd29b417c73b78fdd13bc4b4418a9a90a8"
+  inputs-digest = "d9b519d7279e4c19ff9fbf0a7f504207bb7e8203e3781da1664b7b9c845d334a"
   solver-name = "gps-cdcl"
   solver-version = 1
