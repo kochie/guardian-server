@@ -1,4 +1,4 @@
-<img src='https://d.pr/SLO9Sg/3123P4IP+' />
+<div style="text-align:center"><img src='https://d.pr/SLO9Sg/3123P4IP+' /></div>
 
 # guardian-server [![Build Status](https://travis-ci.org/kochie/guardian-server.svg?branch=master)](https://travis-ci.org/kochie/guardian-server) [![Coverage Status](https://coveralls.io/repos/github/kochie/guardian-server/badge.svg?branch=master)](https://coveralls.io/github/kochie/guardian-server?branch=master)
 Server for communicating with guardian hosts.
