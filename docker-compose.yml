@@ -6,9 +6,6 @@ services:
       - "8000:8000"
     depends_on:
       - "mongo"
-      - "redis"
-  redis:
-    image: "redis:alpine"
   mongo:
     ports:
     - "27017:27017"
