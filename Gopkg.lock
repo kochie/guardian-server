@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/bradleyjkemp/memmap"
+  packages = ["."]
+  revision = "8469122a29ebfa6dc14416f742870ebf50370cc9"
+  version = "v0.2.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
@@ -90,6 +96,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d9b519d7279e4c19ff9fbf0a7f504207bb7e8203e3781da1664b7b9c845d334a"
+  inputs-digest = "4b8cae75a9666a2db4d167070432d5a1ba907c81e116c16c9a210c2f15bfc3d0"
   solver-name = "gps-cdcl"
   solver-version = 1

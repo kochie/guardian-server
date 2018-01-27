@@ -39,3 +39,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/graphql-go/handler"
+
+[[constraint]]
+  name = "github.com/bradleyjkemp/memmap"
+  version = "0.2.0"

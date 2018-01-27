@@ -1,4 +1,11 @@
 {
   "port": "8000",
-  "mongo_hostname": "mongo"
+  "mongo":{
+	  "hostname": "mongo"
+	},
+  "smtp": {
+	  "server": "smtp.address",
+	  "username": "guardian_username",
+	  "password": "the password is password"
+  }
 }
