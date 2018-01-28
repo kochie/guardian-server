@@ -71,6 +71,38 @@ func getServices(userLogin string, p graphql.ResolveParams, users *mgo.Collectio
 	return result.Services, nil
 }
 
+func getDevices(userLogin string, p graphql.ResolveParams, users *mgo.Collection) ([]Device, error) {
+	result := User{}
+	query := bson.M{"$or": []bson.M{{"email": userLogin}, {"number": userLogin}}}
+	response := bson.M{"devices": 1}
+
+	if p.Args["filter"] != nil {
+		filter := p.Args["filter"].(map[string]interface{})
+
+		if len(filter) > 0 {
+			if p.Args["intersection"] == false {
+				params := make([]bson.M, 0)
+				for e, r := range filter {
+					params = append(params, bson.M{e: r})
+				}
+				query["devices"] = bson.M{"$elemMatch": bson.M{"$or": params}}
+			} else {
+				query["devices"] = bson.M{"$elemMatch": filter}
+			}
+		}
+	}
+
+	err := users.Find(query).Select(response).One(&result)
+	if err != nil {
+		if err.Error() == "not found" {
+			return []Device{}, nil
+		}
+		return nil, err
+
+	}
+	return result.Devices, nil
+}
+
 func buildQL(session *mgo.Session) {
 	users := session.DB("guardian").C("users")
 
@@ -107,9 +139,9 @@ func buildQL(session *mgo.Session) {
 		},
 	})
 
-	serviceFilter := graphql.NewInputObject(
+	serviceInput := graphql.NewInputObject(
 		graphql.InputObjectConfig{
-			Name: "serviceFilter",
+			Name: "ServiceInput",
 			Fields: graphql.InputObjectConfigFieldMap{
 				"name": &graphql.InputObjectFieldConfig{
 					Type:        graphql.String,
@@ -159,12 +191,29 @@ func buildQL(session *mgo.Session) {
 			},
 			"devices": &graphql.Field{
 				Type: &graphql.List{OfType: deviceType},
+				Args: graphql.FieldConfigArgument{
+					"filter": &graphql.ArgumentConfig{
+						Type: deviceInput,
+					},
+					"intersection": &graphql.ArgumentConfig{
+						Type:         graphql.Boolean,
+						Description:  "If the search arguments should be accepted in union or intersection.",
+						DefaultValue: false,
+					},
+				},
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					user := p.Source.(User)
+					if user.Number != "" {
+						return getDevices(user.Number, p, users)
+					}
+					return getDevices(user.Email, p, users)
+				},
 			},
 			"services": &graphql.Field{
 				Type: &graphql.List{OfType: serviceType},
 				Args: graphql.FieldConfigArgument{
 					"filter": &graphql.ArgumentConfig{
-						Type: serviceFilter,
+						Type: serviceInput,
 					},
 					"intersection": &graphql.ArgumentConfig{
 						Type:         graphql.Boolean,
@@ -231,7 +280,7 @@ func buildQL(session *mgo.Session) {
 					Description: "The login of the user to search services against.",
 				},
 				"filter": &graphql.ArgumentConfig{
-					Type:        serviceFilter,
+					Type:        serviceInput,
 					Description: "Specify a filter to search services by",
 				},
 				"intersection": &graphql.ArgumentConfig{
@@ -252,17 +301,9 @@ func buildQL(session *mgo.Session) {
 					Type:        graphql.NewNonNull(graphql.String),
 					Description: "The login of the user to search devices against.",
 				},
-				"name": &graphql.ArgumentConfig{
-					Type:        graphql.String,
-					Description: "The name of a device associated with this user",
-				},
-				"token": &graphql.ArgumentConfig{
-					Type:        graphql.String,
-					Description: "The device token to search for.",
-				},
-				"active": &graphql.ArgumentConfig{
-					Type:        graphql.Boolean,
-					Description: "The state of a device associated with this user",
+				"filter": &graphql.ArgumentConfig{
+					Type:        deviceInput,
+					Description: "Specify a filter to search device by",
 				},
 				"intersection": &graphql.ArgumentConfig{
 					Type:         graphql.Boolean,
@@ -272,41 +313,7 @@ func buildQL(session *mgo.Session) {
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				userLogin := p.Args["login"].(string)
-				result := User{}
-				query := bson.M{"$or": []bson.M{{"email": userLogin}, {"number": userLogin}}}
-				response := bson.M{"services": 1}
-
-				searchParams := make(map[string]interface{})
-
-				if p.Args["name"] != nil {
-					searchParams["name"] = p.Args["name"].(string)
-				}
-
-				if p.Args["token"] != nil {
-					searchParams["token"] = p.Args["token"].(string)
-				}
-
-				if p.Args["active"] != nil {
-					searchParams["active"] = p.Args["active"].(bool)
-				}
-
-				if len(searchParams) > 0 {
-					if p.Args["intersection"] == false {
-						params := make([]bson.M, 1)
-						for e, r := range searchParams {
-							params = append(params, bson.M{e: r})
-						}
-						query["services"] = bson.M{"$elemMatch": bson.M{"$or": params}}
-					} else {
-						query["services"] = bson.M{"$elemMatch": searchParams}
-					}
-				}
-
-				err := users.Find(query).Select(response).One(&result)
-				if err != nil {
-					return nil, err
-				}
-				return result.Devices, nil
+				return getDevices(userLogin, p, users)
 			},
 		},
 	}
