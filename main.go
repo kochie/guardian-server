@@ -49,7 +49,7 @@ func getServices(userLogin string, p graphql.ResolveParams, users *mgo.Collectio
 
 		if len(filter) > 0 {
 			if p.Args["intersection"] == false {
-				params := make([]bson.M, 1)
+				params := make([]bson.M, 0)
 				for e, r := range filter {
 					params = append(params, bson.M{e: r})
 				}
@@ -62,8 +62,11 @@ func getServices(userLogin string, p graphql.ResolveParams, users *mgo.Collectio
 
 	err := users.Find(query).Select(response).One(&result)
 	if err != nil {
-		fmt.Println(err)
+		if err.Error() == "not found" {
+			return []Service{}, nil
+		}
 		return nil, err
+
 	}
 	return result.Services, nil
 }
@@ -228,7 +231,8 @@ func buildQL(session *mgo.Session) {
 					Description: "The login of the user to search services against.",
 				},
 				"filter": &graphql.ArgumentConfig{
-					Type: serviceFilter,
+					Type:        serviceFilter,
+					Description: "Specify a filter to search services by",
 				},
 				"intersection": &graphql.ArgumentConfig{
 					Type:         graphql.Boolean,
