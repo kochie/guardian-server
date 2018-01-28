@@ -460,28 +460,25 @@ func buildQL(session *mgo.Session) {
 				login := p.Args["login"].(string)
 				val := p.Args["updatedService"].(map[string]interface{})
 
-				// user := User{}
-				serviceObject := User{}
+				userObject := User{}
 
-				change := mgo.Change{
-					Update:    bson.M{"$set": bson.M{"services.$": val}},
-					ReturnNew: true,
-				}
+				change := bson.M{"$set": bson.M{"services.$": val}}
 
-				// selector := bson.M{"services.$": true}
+				selector := bson.M{"services.$": true}
 
 				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "services": bson.M{"$elemMatch": service}}
-				_, err := users.Find(query).Apply(change, &serviceObject)
+				err := users.Update(query, change)
 				if err != nil {
 					return nil, err
 				}
-				// query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "services": bson.M{"$elemMatch": val}}
-				// err = users.Find(query).Select(selector).One(&user)
-				// if err != nil {
-				// 	return nil, err
-				// }
 
-				return serviceObject, nil
+				query = bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "services": bson.M{"$elemMatch": val}}
+				err = users.Find(query).Select(selector).One(&userObject)
+				if err != nil {
+					return nil, err
+				}
+
+				return userObject.Services[0], nil
 			},
 		},
 
@@ -534,6 +531,46 @@ func buildQL(session *mgo.Session) {
 					return nil, err
 				}
 				return deviceObject, nil
+			},
+		},
+
+		"updateDevice": &graphql.Field{
+			Type: deviceType,
+			Args: graphql.FieldConfigArgument{
+				"device": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(deviceInput),
+				},
+				"updatedDevice": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(deviceInput),
+				},
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				device := p.Args["device"].(map[string]interface{})
+				login := p.Args["login"].(string)
+				val := p.Args["updatedDevice"].(map[string]interface{})
+
+				userObject := User{}
+
+				change := bson.M{"$set": bson.M{"devices.$": val}}
+
+				selector := bson.M{"devices.$": true}
+
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "devices": bson.M{"$elemMatch": device}}
+				err := users.Update(query, change)
+				if err != nil {
+					return nil, err
+				}
+
+				query = bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "devices": bson.M{"$elemMatch": val}}
+				err = users.Find(query).Select(selector).One(&userObject)
+				if err != nil {
+					return nil, err
+				}
+
+				return userObject.Devices[0], nil
 			},
 		},
 

@@ -11,6 +11,8 @@ type Config struct {
 	Port  string `json:"port"`
 	Mongo struct {
 		Hostname string `json:"hostname"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	} `json:"mongo"`
 	SMTP struct {
 		Server   string `json:"server"`

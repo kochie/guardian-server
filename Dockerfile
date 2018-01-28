@@ -10,7 +10,7 @@ WORKDIR /go/src/github.com/kochie/guardian-server
 
 COPY . .
 
-# RUN dep ensure --vendor-only
+RUN dep ensure --vendor-only
 
 RUN go-wrapper install
 
