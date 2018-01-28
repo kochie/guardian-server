@@ -179,9 +179,22 @@ func buildQL(session *mgo.Session) {
 		},
 	)
 
-	// fmt.Println(p.Source.(User).Email)
-	var userType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "User",
+	userInput := graphql.NewInputObject(
+		graphql.InputObjectConfig{
+			Name: "User",
+			Fields: graphql.InputObjectConfigFieldMap{
+				"email": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+				"number": &graphql.InputObjectFieldConfig{
+					Type: graphql.String,
+				},
+			},
+		},
+	)
+
+	userType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "UserType",
 		Fields: graphql.Fields{
 			"email": &graphql.Field{
 				Type: graphql.String,
@@ -231,20 +244,6 @@ func buildQL(session *mgo.Session) {
 			},
 		},
 	})
-
-	userInputType := graphql.NewInputObject(
-		graphql.InputObjectConfig{
-			Name: "userInput",
-			Fields: graphql.InputObjectConfigFieldMap{
-				"email": &graphql.InputObjectFieldConfig{
-					Type: graphql.String,
-				},
-				"number": &graphql.InputObjectFieldConfig{
-					Type: graphql.String,
-				},
-			},
-		},
-	)
 
 	fields := graphql.Fields{
 		"hello": &graphql.Field{
@@ -322,7 +321,7 @@ func buildQL(session *mgo.Session) {
 			Type: userType,
 			Args: graphql.FieldConfigArgument{
 				"user": &graphql.ArgumentConfig{
-					Type: graphql.NewNonNull(userInputType),
+					Type: graphql.NewNonNull(userInput),
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
@@ -365,32 +364,147 @@ func buildQL(session *mgo.Session) {
 				return user, nil
 			},
 		},
+
+		"updateUser": &graphql.Field{
+			Type: userType,
+			Args: graphql.FieldConfigArgument{
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"user": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(userInput),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				login := p.Args["login"].(string)
+				val := p.Args["user"].(map[string]interface{})
+				user := User{}
+
+				change := mgo.Change{
+					Update:    bson.M{"$set": val},
+					ReturnNew: true,
+				}
+
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				_, err := users.Find(query).Apply(change, &user)
+				if err != nil {
+					return nil, err
+				}
+
+				return user, nil
+			},
+		},
+
+		"removeUser": &graphql.Field{
+			Type: userType,
+			Args: graphql.FieldConfigArgument{
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				login := p.Args["login"].(string)
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				err := users.Remove(query)
+				if err != nil {
+					return nil, err
+				}
+				return true, nil
+			},
+		},
+
 		"addService": &graphql.Field{
 			Type: serviceType,
 			Args: graphql.FieldConfigArgument{
-				"name": &graphql.ArgumentConfig{
-					Type: graphql.NewNonNull(graphql.String),
-				},
-				"type": &graphql.ArgumentConfig{
-					Type: graphql.NewNonNull(graphql.String),
+				"service": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(serviceInput),
 				},
 				"login": &graphql.ArgumentConfig{
 					Type: graphql.NewNonNull(graphql.String),
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				name := p.Args["name"].(string)
-				serviceProvider := p.Args["type"].(string)
+				service := p.Args["service"].(map[string]interface{})
 				login := p.Args["login"].(string)
 
-				service := &Service{Name: name, Type: serviceProvider, Active: true}
+				serviceObject := &Service{
+					Name:   service["name"].(string),
+					Type:   service["type"].(string),
+					Active: service["active"].(bool),
+				}
 				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
-				update := bson.M{"$push": bson.M{"services": service}}
+				update := bson.M{"$push": bson.M{"services": serviceObject}}
 				err := users.Update(query, update)
 				if err != nil {
 					return nil, err
 				}
-				return service, nil
+				return serviceObject, nil
+			},
+		},
+
+		"updateService": &graphql.Field{
+			Type: serviceType,
+			Args: graphql.FieldConfigArgument{
+				"service": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(serviceInput),
+				},
+				"updatedService": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(serviceInput),
+				},
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				service := p.Args["service"].(map[string]interface{})
+				login := p.Args["login"].(string)
+				val := p.Args["updatedService"].(map[string]interface{})
+
+				// user := User{}
+				serviceObject := User{}
+
+				change := mgo.Change{
+					Update:    bson.M{"$set": bson.M{"services.$": val}},
+					ReturnNew: true,
+				}
+
+				// selector := bson.M{"services.$": true}
+
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "services": bson.M{"$elemMatch": service}}
+				_, err := users.Find(query).Apply(change, &serviceObject)
+				if err != nil {
+					return nil, err
+				}
+				// query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}, "services": bson.M{"$elemMatch": val}}
+				// err = users.Find(query).Select(selector).One(&user)
+				// if err != nil {
+				// 	return nil, err
+				// }
+
+				return serviceObject, nil
+			},
+		},
+
+		"removeService": &graphql.Field{
+			Type: serviceType,
+			Args: graphql.FieldConfigArgument{
+				"service": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(serviceInput),
+				},
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				login := p.Args["login"].(string)
+				service := p.Args["service"].(map[string]interface{})
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				update := bson.M{"$pull": bson.M{"services": service}}
+				err := users.Update(query, update)
+				if err != nil {
+					return nil, err
+				}
+				return true, nil
 			},
 		},
 
@@ -406,15 +520,43 @@ func buildQL(session *mgo.Session) {
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				device := p.Args["device"].(map[string]interface{})
-				userLogin := p.Args["login"].(string)
+				login := p.Args["login"].(string)
 
-				query := bson.M{"email": userLogin}
-				update := bson.M{"$push": bson.M{"devices": &Device{Name: device["name"].(string), Token: device["token"].(string), Active: device["active"].(bool)}}}
+				deviceObject := &Device{
+					Name:   device["name"].(string),
+					Token:  device["token"].(string),
+					Active: device["active"].(bool),
+				}
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				update := bson.M{"$push": bson.M{"devices": deviceObject}}
 				err := users.Update(query, update)
 				if err != nil {
 					return nil, err
 				}
-				return device, nil
+				return deviceObject, nil
+			},
+		},
+
+		"removeDevice": &graphql.Field{
+			Type: deviceType,
+			Args: graphql.FieldConfigArgument{
+				"device": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(deviceInput),
+				},
+				"login": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				login := p.Args["login"].(string)
+				device := p.Args["device"].(map[string]interface{})
+				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				update := bson.M{"$pull": bson.M{"devices": device}}
+				err := users.Update(query, update)
+				if err != nil {
+					return nil, err
+				}
+				return true, nil
 			},
 		},
 	}
