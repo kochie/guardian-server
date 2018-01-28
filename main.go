@@ -106,8 +106,8 @@ func getDevices(userLogin string, p graphql.ResolveParams, users *mgo.Collection
 func buildQL(session *mgo.Session) {
 	users := session.DB("guardian").C("users")
 
-	var serviceType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "Service",
+	serviceType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "ServiceType",
 		Fields: graphql.Fields{
 			"name": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
@@ -124,8 +124,8 @@ func buildQL(session *mgo.Session) {
 		},
 	})
 
-	var deviceType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "Device",
+	deviceType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "DeviceType",
 		Fields: graphql.Fields{
 			"name": &graphql.Field{
 				Type: graphql.NewNonNull(graphql.String),
@@ -141,7 +141,7 @@ func buildQL(session *mgo.Session) {
 
 	serviceInput := graphql.NewInputObject(
 		graphql.InputObjectConfig{
-			Name: "ServiceInput",
+			Name: "Service",
 			Fields: graphql.InputObjectConfigFieldMap{
 				"name": &graphql.InputObjectFieldConfig{
 					Type:        graphql.String,
@@ -161,7 +161,7 @@ func buildQL(session *mgo.Session) {
 
 	deviceInput := graphql.NewInputObject(
 		graphql.InputObjectConfig{
-			Name: "DeviceInput",
+			Name: "Device",
 			Fields: graphql.InputObjectConfigFieldMap{
 				"name": &graphql.InputObjectFieldConfig{
 					Type:        graphql.String,
