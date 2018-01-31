@@ -30,16 +30,8 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lib/pq"
-
-[[constraint]]
-  branch = "v2"
-  name = "gopkg.in/mgo.v2"
+  name = "github.com/globalsign/mgo"
 
 [[constraint]]
   branch = "master"
   name = "github.com/graphql-go/handler"
-
-[[constraint]]
-  name = "github.com/bradleyjkemp/memmap"
-  version = "0.2.0"

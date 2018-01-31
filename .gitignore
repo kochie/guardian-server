@@ -15,5 +15,8 @@
 
 vendor/
 
+.bashful/
+
 # The binary file output
-guardian-server
+#guardian-server
+#config.json
