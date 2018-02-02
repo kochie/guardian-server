@@ -11,8 +11,8 @@ import (
 	"github.com/graphql-go/handler"
 )
 
-func checkForUser(users *mgo.Collection, val map[string]interface{}) (*User, error) {
-	user := &User{}
+func checkForUser(users *mgo.Collection, val map[string]interface{}) (interface{}, error) {
+	user := User{}
 
 	if val["number"] == nil && val["email"] == nil {
 		return nil, errors.New("Either an email or phone number is required")
@@ -45,7 +45,7 @@ func checkForUser(users *mgo.Collection, val map[string]interface{}) (*User, err
 	return user, nil
 }
 
-func addUser(users *mgo.Collection, val map[string]interface{}) (*User, error) {
+func addUser(users *mgo.Collection, val map[string]interface{}) (interface{}, error) {
 	user, err := checkForUser(users, val)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func BuildQL(session *mgo.Session) {
 					},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					user := p.Source.(*User)
+					user := p.Source.(User)
 					if user.Number != "" {
 						return getDevices(user.Number, p, users)
 					}
@@ -299,7 +299,7 @@ func BuildQL(session *mgo.Session) {
 					},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					user := p.Source.(*User)
+					user := p.Source.(User)
 					if user.Number != "" {
 						return getServices(user.Number, p, users)
 					}
@@ -313,10 +313,12 @@ func BuildQL(session *mgo.Session) {
 		Name: "LoginStatus",
 		Fields: graphql.Fields{
 			"user": &graphql.Field{
-				Type: userType,
+				Type:        userType,
+				Description: "The user information",
 			},
 			"loginMethod": &graphql.Field{
-				Type: graphql.String,
+				Type:        graphql.String,
+				Description: "The method of login used by the client.",
 			},
 		},
 	})
@@ -332,14 +334,19 @@ func BuildQL(session *mgo.Session) {
 			Type: userType,
 			Args: graphql.FieldConfigArgument{
 				"login": &graphql.ArgumentConfig{
-					Type: graphql.NewNonNull(graphql.String),
+					Type:        graphql.NewNonNull(graphql.String),
+					Description: "The login to search for in the database.",
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				login := p.Args["login"].(string)
 
 				result := User{}
-				query := bson.M{"$or": []bson.M{{"email": login}, {"number": login}}}
+				searchFields := []bson.M{{"email": login}, {"number": login}, {"username": login}}
+				if bson.IsObjectIdHex(login) {
+					searchFields = append(searchFields, bson.M{"_id": bson.ObjectIdHex(login)})
+				}
+				query := bson.M{"$or": searchFields}
 				err := users.Find(query).One(&result)
 				if err != nil {
 					return nil, errors.New("No user found")
@@ -654,7 +661,7 @@ func BuildQL(session *mgo.Session) {
 				}
 
 				result := Login{
-					User: *user,
+					User: user.(User),
 				}
 
 				if val["email"] != nil {
