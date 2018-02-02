@@ -1,0 +1,12 @@
+{
+	"name": "guardian",
+	"alias": [
+		"guardian.now.sh",
+		"guardianssh.stream"
+	],
+	"files": [
+		"config.json",
+		"guardian-server/"
+	],
+	"type": "docker"
+}
