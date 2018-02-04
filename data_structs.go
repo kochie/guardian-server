@@ -31,3 +31,11 @@ type Login struct {
 	User        User   `json:"user"`
 	LoginMethod string `json:"loginMethod"`
 }
+
+type TokenValidation struct {
+	Email           string `json:"email"`
+	Number          string `json:"number"`
+	SMSCode         string `json:"SMSCode"`
+	EmailToken      string `json:"emailToken"`
+	TokenHardExpire int64  `json:"tokenHardExpire"`
+}

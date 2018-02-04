@@ -2,8 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/kochie/guardian-server/lib"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -11,51 +14,82 @@ import (
 	"github.com/graphql-go/handler"
 )
 
-func checkForUser(users *mgo.Collection, val map[string]interface{}) (interface{}, error) {
+func makeUser(val map[string]interface{}) User {
 	user := User{}
 
-	if val["number"] == nil && val["email"] == nil {
-		return nil, errors.New("Either an email or phone number is required")
+	if email, ok := val["email"]; ok {
+		user.Email = email.(string)
+	}
+	if number, ok := val["number"]; ok {
+		user.Number = number.(string)
+	}
+	return user
+}
+
+func makeDevice(val map[string]interface{}) Device {
+	device := Device{}
+
+	if active, ok := val["active"]; ok {
+		device.Active = active.(bool)
+	}
+	if description, ok := val["description"]; ok {
+		device.Description = description.(string)
+	}
+	if name, ok := val["name"]; ok {
+		device.Name = name.(string)
+	}
+	if token, ok := val["token"]; ok {
+		device.Token = token.(string)
 	}
 
-	if val["email"] != nil {
-		user.Email = val["email"].(string)
+	return device
+}
+
+func userExists(users *mgo.Collection, user User) (bool, error) {
+
+	if user.Number == "" && user.Email == "" {
+		return false, errors.New("Either an email or phone number is required")
+	}
+
+	if user.Email != "" {
 		query := bson.M{"email": user.Email}
 		co, err := users.Find(query).Count()
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 		if co > 0 {
-			return nil, errors.New("A user already exists with that email")
+			return true, nil
 		}
 	}
 
-	if val["number"] != nil {
-		user.Number = val["number"].(string)
+	if user.Number != "" {
 		query := bson.M{"number": user.Number}
 		co, err := users.Find(query).Count()
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 		if co > 0 {
-			return nil, errors.New("A user already exists with that number")
+			return true, nil
 		}
 	}
 
-	return user, nil
+	return false, nil
 }
 
-func addUser(users *mgo.Collection, val map[string]interface{}) (interface{}, error) {
-	user, err := checkForUser(users, val)
-	if err != nil {
-		return nil, err
+func addUser(users *mgo.Collection, user User) error {
+	query := bson.M{}
+	if user.Email != "" {
+		query["email"] = user.Email
 	}
-
-	err = users.Insert(user)
-	if err != nil {
-		return nil, err
+	if user.Number != "" {
+		query["number"] = user.Number
+		fmt.Println("Got number")
 	}
-	return user, nil
+	err := users.Insert(query)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getServices(userLogin string, p graphql.ResolveParams, users *mgo.Collection) ([]Service, error) {
@@ -123,8 +157,9 @@ func getDevices(userLogin string, p graphql.ResolveParams, users *mgo.Collection
 }
 
 // BuildQL will create a schema for graphql
-func BuildQL(session *mgo.Session) {
+func BuildQL(session *mgo.Session, config *lib.Config) {
 	users := session.DB("guardian").C("users")
+	validations := session.DB("guardian").C("validations")
 
 	serviceType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "ServiceType",
@@ -400,6 +435,47 @@ func BuildQL(session *mgo.Session) {
 		},
 	}
 	mutations := graphql.Fields{
+		"validate": &graphql.Field{
+			Type: graphql.String,
+			Args: graphql.FieldConfigArgument{
+				"type": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+				"code": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+				"user": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(userInput),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				user := p.Args["user"].(User)
+				code := p.Args["code"].(string)
+				var isValid bool
+				var err error
+				switch p.Args["type"] {
+				case "Email":
+					isValid, err = validateEmail(user, code, validations)
+					break
+				case "SMS":
+					isValid, err = validateSMS(user, code, validations)
+					break
+				default:
+					return nil, errors.New("Unknown type of verification")
+				}
+
+				if err != nil {
+					return nil, err
+				}
+
+				if isValid {
+					token := makeToken()
+					return token, nil
+				}
+				return nil, errors.New("Invalid code or user")
+			},
+		},
+
 		"addUser": &graphql.Field{
 			Type: userType,
 			Args: graphql.FieldConfigArgument{
@@ -409,7 +485,21 @@ func BuildQL(session *mgo.Session) {
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				val := p.Args["user"].(map[string]interface{})
-				return addUser(users, val)
+
+				user := User{
+					Email:  val["email"].(string),
+					Number: val["number"].(string),
+				}
+				if ok, err := userExists(users, user); ok {
+					return nil, err
+				}
+
+				err := addUser(users, user)
+				if err != nil {
+					return nil, err
+				}
+
+				return user, err
 			},
 		},
 
@@ -645,33 +735,74 @@ func BuildQL(session *mgo.Session) {
 			},
 		},
 
+		"logout": &graphql.Field{
+			Type: graphql.Boolean,
+			Args: graphql.FieldConfigArgument{
+				"user": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(userInput),
+				},
+				"deviceToken": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				return logout(p.Args["user"].(User), p.Args["deviceToken"].(string), users)
+			},
+		},
+
 		"loginOrRegister": &graphql.Field{
 			Type: loginStatus,
 			Args: graphql.FieldConfigArgument{
 				"user": &graphql.ArgumentConfig{
 					Type: graphql.NewNonNull(userInput),
 				},
+				"device": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(deviceInput),
+				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				val := p.Args["user"].(map[string]interface{})
+				// Check if values are valid.
+				// Check if user exists. If so login the user.
+				// Register the user
 
-				user, err := addUser(users, val)
+				user := makeUser(p.Args["user"].(map[string]interface{}))
+				device := makeDevice(p.Args["device"].(map[string]interface{}))
+
+				fmt.Println(user)
+				fmt.Println(device)
+
+				ok, err := userExists(users, user)
+				if err != nil {
+					return nil, err
+				}
+				if ok {
+					fmt.Println("Login Mode")
+					err := login(user, device, *config, validations)
+					if err != nil {
+						return nil, err
+					}
+					return user, nil
+				}
+				fmt.Println("Register Mode")
+
+				err = register(user, users, validations, *config, device)
 				if err != nil {
 					return nil, err
 				}
 
 				result := Login{
-					User: user.(User),
+					User: user,
 				}
 
-				if val["email"] != nil {
-					result.LoginMethod = "email"
-				}
-				if val["number"] != nil {
+				if user.Number != "" {
 					result.LoginMethod = "number"
+				}
+				if user.Email != "" {
+					result.LoginMethod = "email"
 				}
 
 				return result, nil
+
 			},
 		},
 	}
