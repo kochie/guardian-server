@@ -1,0 +1,12 @@
+tasks:
+  - name: Building App
+    cmd: ./build.sh
+    tag: build
+
+  - name: Push app
+    cmd: now
+    tag: now
+
+  - name: Alias app
+    cmd: now alias
+    tag: now

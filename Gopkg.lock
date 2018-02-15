@@ -2,10 +2,16 @@
 
 
 [[projects]]
-  name = "github.com/bradleyjkemp/memmap"
-  packages = ["."]
-  revision = "8469122a29ebfa6dc14416f742870ebf50370cc9"
-  version = "v0.2.0"
+  branch = "master"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
+  revision = "896bbb89d21253a28cd5a7f8b81fe091410cb94d"
 
 [[projects]]
   branch = "master"
@@ -81,21 +87,9 @@
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
-[[projects]]
-  branch = "v2"
-  name = "gopkg.in/mgo.v2"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram"
-  ]
-  revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4b8cae75a9666a2db4d167070432d5a1ba907c81e116c16c9a210c2f15bfc3d0"
+  inputs-digest = "9fd2661650c36791230d3e472d0d792ee9157a291dd08650db65d581614c214d"
   solver-name = "gps-cdcl"
   solver-version = 1

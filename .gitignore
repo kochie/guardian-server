@@ -14,3 +14,9 @@
 .glide/
 
 vendor/
+
+.bashful/
+
+# The binary file output
+#guardian-server
+#config.json
