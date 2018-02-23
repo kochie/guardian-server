@@ -34,7 +34,7 @@ type TwilioConfig struct {
 	SenderNumber string `json:"senderNumber"`
 }
 
-//ImportConfig will import the configuration options from the config file.
+// ImportConfig will import the configuration options from the config file.
 func ImportConfig() (conf *Config) {
 	raw, err := ioutil.ReadFile("./config.json")
 	if err != nil {
