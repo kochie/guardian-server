@@ -17,7 +17,7 @@ type Device struct {
 	Description string `json:"description"`
 }
 
-//User datatype
+// User datatype
 type User struct {
 	Email    string    `json:"email"`
 	Number   string    `json:"number"`
@@ -26,7 +26,7 @@ type User struct {
 	Devices  []Device  `json:"devices"`
 }
 
-//Login datatype
+// Login datatype
 type Login struct {
 	User        User   `json:"user"`
 	LoginMethod string `json:"loginMethod"`
